@@ -1,0 +1,52 @@
+1.busybox 支持mdev（一般默认支持）
+	mdev是busybox中udev设备文件系统的精简版
+	# make menuconfig
+	确保以下几项被选中：
+	Linux System Utilities  --->
+	mdev                                           
+
+	Support /etc/mdev.conf                                
+
+	Support subdirs/symlinks                            
+
+	Support regular expressions substitutions when renaming dev
+
+	Support command execution at device addition/removal       
+
+	Support loading of firmwares
+
+2.内核配置支持
+	CONFIG_HOTPLUG=y  //确保这项为y
+	CONFIG_PRINTK=y
+	CONFIG_NET=y     //确保这项也为y
+
+3.设置启动脚本rcS
+	/bin/mount -a    #挂载fstab里的内容
+	/bin/echo /sbin/mdev > /proc/sys/kernel/hotplug
+	/sbin/mdev -s
+
+3.在etc下创建编辑mdev.conf
+	mmcblk[0-9]p[0-9] 0:0 666        @ /etc/hotplug/sd/sd_insert
+	mmcblk[0-9]       0:0 666        $ /etc/hotplug/sd/sd_remove
+
+4.根据实际所需创建sd_insert sd_remove
+	# vi /etc/sd/sd_insert
+	内容
+		#!/bin/bash
+		mkdir /mnt/sdcard
+		mount -t vfat(根据实际格式) /dev/mmcblk1p1 /mnt/sdcard
+	#vi /etc/sd/sd_remove
+	内容
+		#!/bin/bash
+		sync	#同步内容
+		umonut /mnt/sdcard
+		rm -rf /mnt/sdcard 
+
+5.给这两个脚本加可执行权限
+	#chmod +x /etc/sd/*
+
+出现的问题：
+	1.sd没有分区 p1
+	解决：
+		使用fdisk /dev/mmcblk1 重新创建分区
+		
